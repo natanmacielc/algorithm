@@ -11,13 +11,13 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 import static com.algorithm.TextArray.*;
-import static com.algorithm.constant.AnsiColor.ANSI_GREEN;
-import static com.algorithm.constant.AnsiColor.ANSI_RESET;
+import static com.algorithm.constant.AnsiColor.*;
 import static java.text.MessageFormat.format;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 
 public class SearchAlgorithmUseCase implements AlgorithmUseCase {
-    private final Map<Integer, SearchAlgorithmSummary> algorithmExecutionTimes = new HashMap<>();
+    private final Map<Integer, SearchAlgorithmSummary> fastestAlgorithmExecution = new HashMap<>();
+    private final Map<Integer, SearchAlgorithmSummary> slowestAlgorithmExecution = new HashMap<>();
 
     @Override
     public void execute(Algorithm algorithm) {
@@ -29,11 +29,13 @@ public class SearchAlgorithmUseCase implements AlgorithmUseCase {
 
     @Override
     public void printPerformance() {
-        algorithmExecutionTimes.forEach((arraySize, searchAlgorithmExecutionTime) ->    {
-            final SearchAlgorithmExecution diff = searchAlgorithmExecutionTime.getDiff();
-            final SearchAlgorithmExecution iterations = searchAlgorithmExecutionTime.getIterations();
-            System.out.println(format("{0}Faster execution of array with size {1}: {2} with {3}ms", ANSI_GREEN, arraySize, diff.algorithm().getClass().getSimpleName(), diff.execution()));
-            System.out.println(format("Execution with fewer iterations of array with size  {0}: {1} with {2} iterations{3}", arraySize, iterations.algorithm().getClass().getSimpleName(), iterations.execution(), ANSI_RESET));
+        ARRAY_SIZES.forEach(arraySize -> {
+            final SearchAlgorithmSummary fasterAlgorithmSummary = fastestAlgorithmExecution.get(arraySize);
+            final SearchAlgorithmSummary slowestAlgorithmSummary = slowestAlgorithmExecution.get(arraySize);
+            System.out.println(format("{0}Faster execution of array with size {1}: {2} in {3}ms", ANSI_GREEN, arraySize, fasterAlgorithmSummary.getDiff().algorithm().getClass().getSimpleName(), fasterAlgorithmSummary.getDiff().execution()));
+            System.out.println(format("Execution with fewer iterations of array with size {0}: {1} with {2} iterations{3}", arraySize, fasterAlgorithmSummary.getIterations().algorithm().getClass().getSimpleName(), fasterAlgorithmSummary.getIterations().execution(), ANSI_RESET));
+            System.out.println(format("{0}Slower execution of array with size {1}: {2} in {3}ms", ANSI_RED, arraySize, slowestAlgorithmSummary.getDiff().algorithm().getClass().getSimpleName(), slowestAlgorithmSummary.getDiff().execution()));
+            System.out.println(format("Execution with further iterations of array with size {0}: {1} with {2} iterations{3}", arraySize, slowestAlgorithmSummary.getIterations().algorithm().getClass().getSimpleName(), slowestAlgorithmSummary.getIterations().execution(), ANSI_RESET));
             System.out.println();
         });
     }
@@ -43,33 +45,56 @@ public class SearchAlgorithmUseCase implements AlgorithmUseCase {
         final StopWatch stopWatch = new StopWatch(searchAlgorithm.getClass().getSimpleName());
         final Future<String> task = executorService.submit(() -> searchAlgorithm.search(array));
         stopWatch.start();
-        try {
-            System.out.println(format("{0} searching for {1} in array size {2}", searchAlgorithm.getClass().getSimpleName(), SPECIFIED_ELEMENT, arraySize));
-            final String element = task.get(30, TimeUnit.SECONDS);
-            searchAlgorithm.printIterations(searchAlgorithm.iterations());
-            System.out.println("Specified element " + element + " has been found");
-        } catch (TimeoutException timeoutException) {
-            System.out.println("Search timed out");
-            searchAlgorithm.printIterations(searchAlgorithm.iterations());
-            task.cancel(true);
-        } catch (InterruptedException | ExecutionException executionException) {
-            System.out.println("Search interrupted");
-        }
+        searchInSingleThreadExecutor(arraySize, searchAlgorithm, task);
         stopWatch.stop();
         addExecutionTime(arraySize, searchAlgorithm, stopWatch.getDiff(), searchAlgorithm.iterations());
         System.out.println();
     }
 
+    private void searchInSingleThreadExecutor(int arraySize, SearchAlgorithm searchAlgorithm, Future<String> task) {
+        try {
+            System.out.println(format("{0} searching for {1} in array with size {2}", searchAlgorithm.getClass().getSimpleName(), SPECIFIED_ELEMENT, arraySize));
+            final String element = task.get(30, TimeUnit.SECONDS);
+            searchAlgorithm.printIterations(searchAlgorithm.iterations());
+            System.out.println("Specified element " + element + " has been found");
+        } catch (TimeoutException timeoutException) {
+            System.out.println(ANSI_RED + "Search timed out"  + ANSI_RESET);
+            searchAlgorithm.printIterations(searchAlgorithm.iterations());
+            task.cancel(true);
+        } catch (InterruptedException | ExecutionException executionException) {
+            System.out.println(ANSI_RED + "Search interrupted" + ANSI_RESET);
+        }
+    }
+
     private void addExecutionTime(int arraySize, SearchAlgorithm algorithm, long diff, long iterations) {
+        putFastestAlgorithmIfApplicable(arraySize, algorithm, diff, iterations);
+        putSlowestAlgorithmIfApplicable(arraySize, algorithm, diff, iterations);
+    }
+
+    private void putSlowestAlgorithmIfApplicable(int arraySize, SearchAlgorithm algorithm, long diff, long iterations) {
+        if (slowestAlgorithmExecution.containsKey(arraySize)) {
+            if (slowestAlgorithmExecution.get(arraySize).getDiff().execution() < diff) {
+                slowestAlgorithmExecution.get(arraySize).setDiff(new SearchAlgorithmExecution(algorithm, diff));
+            }
+            if (slowestAlgorithmExecution.get(arraySize).getIterations().execution() < iterations) {
+                slowestAlgorithmExecution.get(arraySize).setIterations(new SearchAlgorithmExecution(algorithm, iterations));
+            }
+        } else {
+            slowestAlgorithmExecution.put(arraySize,new SearchAlgorithmSummary(new SearchAlgorithmExecution(algorithm, diff), new SearchAlgorithmExecution(algorithm, iterations)));
+        }
+    }
+
+    private void putFastestAlgorithmIfApplicable(int arraySize, SearchAlgorithm algorithm, long diff, long iterations) {
         final boolean notConstantAlgorithm = iterations != 0;
-        if (algorithmExecutionTimes.containsKey(arraySize)) {
-            if (algorithmExecutionTimes.get(arraySize).getDiff().execution() > diff && notConstantAlgorithm) {
-                algorithmExecutionTimes.get(arraySize).setDiff(new SearchAlgorithmExecution(algorithm, diff));
-            } else if (algorithmExecutionTimes.get(arraySize).getIterations().execution() > iterations && notConstantAlgorithm) {
-                algorithmExecutionTimes.get(arraySize).setIterations(new SearchAlgorithmExecution(algorithm, iterations));
+        if (fastestAlgorithmExecution.containsKey(arraySize)) {
+            if (fastestAlgorithmExecution.get(arraySize).getDiff().execution() > diff && notConstantAlgorithm) {
+                fastestAlgorithmExecution.get(arraySize).setDiff(new SearchAlgorithmExecution(algorithm, diff));
+            }
+            if (fastestAlgorithmExecution.get(arraySize).getIterations().execution() > iterations && notConstantAlgorithm) {
+                fastestAlgorithmExecution.get(arraySize).setIterations(new SearchAlgorithmExecution(algorithm, iterations));
             }
         } else if (notConstantAlgorithm) {
-            algorithmExecutionTimes.put(arraySize, new SearchAlgorithmSummary(new SearchAlgorithmExecution(algorithm, diff), new SearchAlgorithmExecution(algorithm, iterations)));
+            fastestAlgorithmExecution.put(arraySize, new SearchAlgorithmSummary(new SearchAlgorithmExecution(algorithm, diff), new SearchAlgorithmExecution(algorithm, iterations)));
         }
     }
 }

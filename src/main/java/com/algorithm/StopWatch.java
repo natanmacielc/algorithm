@@ -18,7 +18,7 @@ public class StopWatch {
     }
 
     public void stop() {
-        long stopTime = System.currentTimeMillis();
+        final long stopTime = System.currentTimeMillis();
         diff = stopTime - startTime;
         System.out.println(format("{0}{1} execution time: {2}ms{3}", ANSI_YELLOW, algorithm, diff, ANSI_RESET));
     }
