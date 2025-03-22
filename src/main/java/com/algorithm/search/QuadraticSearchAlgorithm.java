@@ -5,19 +5,25 @@ import java.util.Objects;
 import static com.algorithm.TextArray.SPECIFIED_ELEMENT;
 
 public class QuadraticSearchAlgorithm implements SearchAlgorithm {
+    private long iterations = 0L;
+
+    @Override
+    public long iterations() {
+        return iterations;
+    }
+
     @Override
     public String search(String[] array) {
-        long iterations = 0L;
         for (String s : array) {
-            for (int j = 0; j < array.length; j++) {
+            for (int j = 0; j < array.length && !Thread.currentThread().isInterrupted(); j++) {
                 if (Objects.equals(s, SPECIFIED_ELEMENT)) {
-                    printIterations(iterations);
                     return s;
                 }
                 iterations++;
             }
             iterations++;
         }
+        Thread.currentThread().interrupt();
         return null;
     }
 }

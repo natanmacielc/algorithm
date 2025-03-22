@@ -1,14 +1,15 @@
 package com.algorithm.search;
 
-import com.algorithm.StopWatch;
-
-import static com.algorithm.TextArray.*;
+import static com.algorithm.TextArray.SPECIFIED_ELEMENT_INDEX;
 
 public class ConstantSearchAlgorithm implements SearchAlgorithm {
     @Override
+    public long iterations() {
+        return 0;
+    }
+
+    @Override
     public String search(String[] array) {
-        final String text = array[SPECIFIED_ELEMENT_INDEX];
-        printIterations(0);
-        return text;
+        return array[SPECIFIED_ELEMENT_INDEX];
     }
 }
