@@ -2,9 +2,9 @@ package com.algorithm.search;
 
 import java.util.Arrays;
 
-import static com.algorithm.TextArray.SPECIFIED_ELEMENT;
+import static com.algorithm.array.TextArray.SPECIFIED_ELEMENT;
 
-public class LogarithmSearchAlgorithm implements SearchAlgorithm {
+public class BinarySearchAlgorithm implements SearchAlgorithm {
     private long iterations = 0L;
 
     @Override
@@ -13,7 +13,7 @@ public class LogarithmSearchAlgorithm implements SearchAlgorithm {
     }
 
     @Override
-    public String search(String[] array) {
+    public String execute(String[] array) {
         Arrays.sort(array);
         int left = 0, right = array.length - 1;
         while (left <= right) {
@@ -23,7 +23,7 @@ public class LogarithmSearchAlgorithm implements SearchAlgorithm {
             } else if (SPECIFIED_ELEMENT.compareToIgnoreCase(array[mid]) > 0) {
                 left = mid + 1;
             } else {
-                left = mid - 1;
+                right = mid - 1;
             }
             iterations++;
         }

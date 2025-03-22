@@ -8,19 +8,25 @@ import com.algorithm.model.SearchAlgorithmSummary;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 
-import static com.algorithm.TextArray.*;
+import static com.algorithm.array.TextArray.SPECIFIED_ELEMENT;
+import static com.algorithm.array.TextArray.textArray;
 import static com.algorithm.constant.AnsiColor.*;
+import static com.algorithm.constant.ArraySize.ARRAY_SIZES;
 import static java.text.MessageFormat.format;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class SearchAlgorithmUseCase implements AlgorithmUseCase {
     private final Map<Integer, SearchAlgorithmSummary> fastestAlgorithmExecution = new HashMap<>();
     private final Map<Integer, SearchAlgorithmSummary> slowestAlgorithmExecution = new HashMap<>();
 
     @Override
-    public void execute(Algorithm algorithm) {
+    public void execute(Algorithm<?, ?> algorithm) {
         final SearchAlgorithm searchAlgorithm = (SearchAlgorithm) algorithm;
         try (final ExecutorService executorService = newSingleThreadExecutor()) {
             ARRAY_SIZES.forEach(arraySize -> doSearch(arraySize, searchAlgorithm, executorService));
@@ -43,7 +49,7 @@ public class SearchAlgorithmUseCase implements AlgorithmUseCase {
     private void doSearch(int arraySize, SearchAlgorithm searchAlgorithm, ExecutorService executorService) {
         final String[] array = textArray(arraySize);
         final StopWatch stopWatch = new StopWatch(searchAlgorithm.getClass().getSimpleName());
-        final Future<String> task = executorService.submit(() -> searchAlgorithm.search(array));
+        final Future<String> task = executorService.submit(() -> searchAlgorithm.execute(array));
         stopWatch.start();
         searchInSingleThreadExecutor(arraySize, searchAlgorithm, task);
         stopWatch.stop();
@@ -54,7 +60,7 @@ public class SearchAlgorithmUseCase implements AlgorithmUseCase {
     private void searchInSingleThreadExecutor(int arraySize, SearchAlgorithm searchAlgorithm, Future<String> task) {
         try {
             System.out.println(format("{0} searching for {1} in array with size {2}", searchAlgorithm.getClass().getSimpleName(), SPECIFIED_ELEMENT, arraySize));
-            final String element = task.get(30, TimeUnit.SECONDS);
+            final String element = task.get(30, SECONDS);
             searchAlgorithm.printIterations(searchAlgorithm.iterations());
             System.out.println("Specified element " + element + " has been found");
         } catch (TimeoutException timeoutException) {

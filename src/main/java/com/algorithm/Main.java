@@ -9,7 +9,7 @@ public class Main {
         final List<SearchAlgorithm> searchAlgorithms = List.of(
                 new ConstantSearchAlgorithm(),
                 new LinearSearchAlgorithm(),
-                new LogarithmSearchAlgorithm(),
+                new BinarySearchAlgorithm(),
                 new QuadraticSearchAlgorithm()
         );
         final SearchAlgorithmUseCase searchAlgorithmUseCase = new SearchAlgorithmUseCase();
