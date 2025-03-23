@@ -10,6 +10,10 @@ public class Main {
                 new ConstantSearchAlgorithm(),
                 new LinearSearchAlgorithm(),
                 new BinarySearchAlgorithm(),
+                new TernarySearchAlgorithm(),
+                new JumpSearchAlgorithm(),
+                new ExponentialSearchAlgorithm(),
+                new InterpolationSearchAlgorithm(),
                 new QuadraticSearchAlgorithm()
         );
         final SearchAlgorithmUseCase searchAlgorithmUseCase = new SearchAlgorithmUseCase();
